@@ -7,9 +7,8 @@
 </head>
 
 <body>
-  <h2>RoughJS Bar Chart example Using D3.js</h2>
   <!-- todo: generate viewbox automatically -->
-  <svg id="svg" width="960" height="500" viewbox="-50 0 980 480"></svg>
+  <svg id="svg" width="960" height="500" viewbox="-50 -10 980 480"></svg>
 
   <script>
     const svg = document.getElementById('svg');
@@ -20,6 +19,13 @@
         bowing: 0.7
       }
     });
+    const createTextNode = (txt, x, y) => {
+      const textNode = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      textNode.appendChild(document.createTextNode(txt));
+      textNode.setAttribute("x", x);
+      textNode.setAttribute("y", y);
+      return textNode;
+    };
 
     const margin = { top: 20, right: 20, bottom: 30, left: 40 },
       width = svg.width.baseVal.value - margin.left - margin.right,
@@ -50,40 +56,27 @@
 
         x.domain().forEach(d => {
             const line = rc.line(x(d) + x.bandwidth() / 2, height + 5, x(d) + x.bandwidth() / 2, height + 11);
-
-            const textNode = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            textNode.appendChild(document.createTextNode(d));
-            textNode.setAttribute("x", x(d) + x.bandwidth() / 2);
-            textNode.setAttribute("y", height + 11);
+            const textNode = createTextNode(d, x(d) + x.bandwidth() / 2, height + 11);
             textNode.setAttribute("text-anchor", "middle");
             textNode.setAttribute("dominant-baseline", "hanging");
             line.appendChild(textNode);
-
             graphNode.appendChild(line);
         });
 
-
         yTicks.forEach(d => {
             const line = rc.line(0, y(d) + 0.5, -6, y(d) + 0.5);
-
-            const textNode = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            textNode.appendChild(document.createTextNode(yTickFormat(d)));
-            textNode.setAttribute("x", -9);
-            textNode.setAttribute("y", y(d));
+            const textNode = createTextNode(yTickFormat(d), -9, y(d));
             textNode.setAttribute("text-anchor", "end");
             textNode.setAttribute("dominant-baseline", "middle");
             line.appendChild(textNode);
-
             graphNode.appendChild(line);
         });
 
         const path = rc.linearPath([[-6.5, 0 + 0.5], [0.5, 0 + 0.5], [0.5, height + 0.5], [-6.5, height + 0.5]]);
         graphNode.appendChild(path);
 
-        const textNode = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        textNode.appendChild(document.createTextNode("Frequency"));
-        textNode.setAttribute("x", -10);
-        textNode.setAttribute("y", 10);
+        
+        const textNode = createTextNode("Frequency", -10, 10);
         textNode.setAttribute("text-anchor", "end");
         textNode.setAttribute("dominant-baseline", "hanging");
         textNode.setAttribute("style", `transform: rotate(-90deg)`);
