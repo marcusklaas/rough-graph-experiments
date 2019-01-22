@@ -1,7 +1,9 @@
 # rough chart experiments
 
-Currently just has a bar charts, which looks like this:
+Bar charts:
 
 ![](bars.png)
 
-Next up: line charts.
+Line charts:
+
+![](ruffgraf.gif)

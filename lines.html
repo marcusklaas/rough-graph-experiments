@@ -14,166 +14,183 @@
 
 <body>
   <!-- todo: generate viewbox automatically -->
-  <svg id="svg" width="960" height="500" viewbox="-50 -10 980 480"></svg>
+  <svg id="svg"></svg>
 
   <script>
     Array.prototype.diff = function(a) {
         return this.filter(i => a.indexOf(i) < 0);
     };
 
-    const svg = document.getElementById('svg');
-    const rc = rough.svg(svg, {
-      options: {
-        fill: "blue",
-        roughness: 0.8,
-        bowing: 0.7
-      }
-    });
-    const createTextNode = (txt, x, y) => {
-      const textNode = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      textNode.appendChild(document.createTextNode(txt));
-      textNode.setAttribute("x", x);
-      textNode.setAttribute("y", y);
-      return textNode;
+    const drawSvg = svg => {
+        const rc = rough.svg(svg, {
+            options: {
+                fill: "blue",
+                roughness: 0.8,
+                bowing: 0.7
+            }
+        });
+        const createTextNode = (txt, x, y) => {
+            const textNode = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            textNode.appendChild(document.createTextNode(txt));
+            textNode.setAttribute("x", x);
+            textNode.setAttribute("y", y);
+            return textNode;
+        };
+
+        const margin = { top: 20, right: 20, bottom: 30, left: 40 },
+            width = parseInt(svg.style.width, 10) - margin.left - margin.right,
+            height = parseInt(svg.style.height, 10) - margin.top - margin.bottom;
+        
+        const x = d3.scaleLog()
+            .rangeRound([0, width])
+            .base(10);
+            //.padding(0.1);
+        
+        const y = d3.scaleLinear()
+            .rangeRound([height, 0])
+            .domain([0, 100]);
+
+        d3.csv("lines-data.csv", (obj, idx) => {
+            return {
+                s: +obj['size'],
+                hashmap: +obj['HashMap'],
+                sortedvec: +obj['SortedVec'],
+                vec: +obj['Vec'],
+            };
+        }).then(data => {
+            const xMax = d3.max(data, d => d.s);
+            x.domain([2, xMax]);
+
+            const yTickCount = 10,
+                yTicks = y.ticks(yTickCount);
+
+            const graphNode = svg;
+
+            const keyz = Object.keys(data[0]).diff(['s']);
+            const zScale = d3.scaleOrdinal()
+                .range(["#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02"])
+                .domain(keyz);
+
+            x.ticks().forEach(d => {
+                const xVal = Math.log(d) / Math.log(10) + 1e-7;
+                if (Math.abs(xVal - Math.floor(xVal)) >= .7) {
+                    return;
+                }
+
+                // gridline
+                const gridLine = rc.line(x(d), 0, x(d), height + 5, {
+                    stroke: '#EEE',
+                    roughness: 3,
+                });
+                graphNode.appendChild(gridLine);
+
+                // tick
+                const line = rc.line(x(d), height + 5, x(d), height + 11);
+                graphNode.appendChild(line);
+
+                // label
+                const textNode = createTextNode(d, x(d), height + 11);
+                textNode.setAttribute("text-anchor", "middle");
+                textNode.setAttribute("dominant-baseline", "hanging");
+                line.appendChild(textNode);
+            });
+
+            const xAxisPath = rc.linearPath(
+                [[0, height + 11], [0, height + 5], [width, height + 5]],
+                {
+                    roughness: 1.5,
+                }
+            );
+            graphNode.appendChild(xAxisPath);
+
+            yTicks.forEach(d => {
+                // gridline
+                const gridLine = rc.line(0, y(d) + 0.5, width, y(d) + 0.5, {
+                    stroke: '#EEE',
+                    roughness: 3,
+                });
+                graphNode.appendChild(gridLine);
+        
+                // tick
+                const line = rc.line(0, y(d) + 0.5, -6, y(d) + 0.5, {
+                    
+                });
+                graphNode.appendChild(line);
+
+                // label
+                const textNode = createTextNode(d, -9, y(d));
+                textNode.setAttribute("text-anchor", "end");
+                textNode.setAttribute("dominant-baseline", "middle");
+                line.appendChild(textNode);
+            });
+
+            const path = rc.linearPath(
+                [[-6.5, 0 + 0.5], [0.5, 0 + 0.5], [0.5, height + 0.5], [-6.5, height + 0.5]],
+                {
+                    roughness: 2,
+                }
+            );
+            graphNode.appendChild(path);
+
+            for (const k of keyz) {
+                const dataPoints = data.map(d => [x(d['s']), y(d[k])]);
+                const path = rc.linearPath(dataPoints, {
+                    stroke: zScale(k),
+                    strokeWidth: 2,
+                    roughness: 0.8,
+                });
+                graphNode.appendChild(path);
+            }
+            
+            // y-axis description
+            const textNode = createTextNode("lookup time (ns)", -10, 10);
+            textNode.setAttribute("text-anchor", "end");
+            textNode.setAttribute("dominant-baseline", "hanging");
+            textNode.setAttribute("style", `transform: rotate(-90deg)`);
+            graphNode.appendChild(textNode);
+            
+            // x-axis description
+            const xAxisTextNode = createTextNode("collection size", width - 10, height - 10);
+            xAxisTextNode.setAttribute("text-anchor", "end");
+            graphNode.appendChild(xAxisTextNode);
+
+            // legend
+            const rectSize = 30;
+            const legendOffset = 130;
+            const spacing = 10;
+
+            for (const [i, k] of keyz.entries()) {
+                const rekt = rc.rectangle(width - legendOffset, 10 + i * (spacing + rectSize), rectSize, rectSize, {
+                    fill: zScale(k),
+                    strokeWidth: 1,
+                    fillWeight: 2,
+                    roughness: 1.5,
+                    hachureAngle: Math.random() * 1000,
+                });
+                const legendTextNode = createTextNode(k, width - legendOffset + rectSize + 10, 10 + i * (spacing + rectSize) + rectSize / 2);
+                legendTextNode.setAttribute("dominant-baseline", "mathematical");
+                graphNode.appendChild(legendTextNode);
+                graphNode.appendChild(rekt);
+            }
+        })
+        .catch(e => {
+            console.dir(e);
+        });
     };
 
-    const margin = { top: 20, right: 20, bottom: 30, left: 40 },
-      width = svg.width.baseVal.value - margin.left - margin.right,
-      height = svg.height.baseVal.value - margin.top - margin.bottom;
-    const x = d3.scaleLog()
-      .rangeRound([0, width])
-      .base(10);
-      //.padding(0.1);
-    const y = d3.scaleLinear()
-      .rangeRound([height, 0])
-      .domain([0, 100]);
+    const drawContinuously = () => {
+        const newSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        newSvg.style.width = "960px";
+        newSvg.style.height = "500px";
+        newSvg.setAttribute("viewBox", "-50 -10 980 480");
 
-    d3.csv("lines-data.csv", (obj, idx) => {
-        return {
-            s: +obj['size'],
-            hashmap: +obj['HashMap'],
-            sortedvec: +obj['SortedVec'],
-            vec: +obj['Vec'],
-        };
-    }).then(data => {
-        const xMax = d3.max(data, d => d.s);
-        x.domain([2, xMax]);
+        drawSvg(newSvg);
+        document.body.replaceChild(newSvg, document.getElementsByTagName('svg')[0]);
 
-        const yTickCount = 10,
-              yTicks = y.ticks(yTickCount);
+        setTimeout(drawContinuously, 100);
+    };
 
-        const graphNode = svg;
-
-        const keyz = Object.keys(data[0]).diff(['s']);
-        const zScale = d3.scaleOrdinal()
-            .range(["#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02"])
-            .domain(keyz);
-
-        x.ticks().forEach(d => {
-            const xVal = Math.log(d) / Math.log(10) + 1e-7;
-            if (Math.abs(xVal - Math.floor(xVal)) >= .7) {
-                return;
-            }
-
-            // gridline
-            const gridLine = rc.line(x(d), 0, x(d), height + 5, {
-                stroke: '#EEE',
-                roughness: 3,
-            });
-            graphNode.appendChild(gridLine);
-
-            // tick
-            const line = rc.line(x(d), height + 5, x(d), height + 11);
-            graphNode.appendChild(line);
-
-            // label
-            const textNode = createTextNode(d, x(d), height + 11);
-            textNode.setAttribute("text-anchor", "middle");
-            textNode.setAttribute("dominant-baseline", "hanging");
-            line.appendChild(textNode);
-        });
-
-        const xAxisPath = rc.linearPath(
-            [[0, height + 11], [0, height + 5], [width, height + 5]],
-            {
-                roughness: 1.5,
-            }
-        );
-        graphNode.appendChild(xAxisPath);
-
-        yTicks.forEach(d => {
-            // gridline
-            const gridLine = rc.line(0, y(d) + 0.5, width, y(d) + 0.5, {
-                stroke: '#EEE',
-                roughness: 3,
-            });
-            graphNode.appendChild(gridLine);
-    
-            // tick
-            const line = rc.line(0, y(d) + 0.5, -6, y(d) + 0.5, {
-                
-            });
-            graphNode.appendChild(line);
-
-            // label
-            const textNode = createTextNode(d, -9, y(d));
-            textNode.setAttribute("text-anchor", "end");
-            textNode.setAttribute("dominant-baseline", "middle");
-            line.appendChild(textNode);
-        });
-
-        const path = rc.linearPath(
-            [[-6.5, 0 + 0.5], [0.5, 0 + 0.5], [0.5, height + 0.5], [-6.5, height + 0.5]],
-            {
-                roughness: 2,
-            }
-        );
-        graphNode.appendChild(path);
-
-        for (const k of keyz) {
-            const dataPoints = data.map(d => [x(d['s']), y(d[k])]);
-            const path = rc.linearPath(dataPoints, {
-                stroke: zScale(k),
-                strokeWidth: 2,
-                roughness: 0.8,
-            });
-            graphNode.appendChild(path);
-        }
-        
-        // y-axis description
-        const textNode = createTextNode("lookup time (ns)", -10, 10);
-        textNode.setAttribute("text-anchor", "end");
-        textNode.setAttribute("dominant-baseline", "hanging");
-        textNode.setAttribute("style", `transform: rotate(-90deg)`);
-        graphNode.appendChild(textNode);
-        
-        // x-axis description
-        const xAxisTextNode = createTextNode("collection size", width - 10, height - 10);
-        xAxisTextNode.setAttribute("text-anchor", "end");
-        graphNode.appendChild(xAxisTextNode);
-
-        // legend
-        const rectSize = 30;
-        const legendOffset = 130;
-        const spacing = 10;
-
-        for (const [i, k] of keyz.entries()) {
-            const rekt = rc.rectangle(width - legendOffset, 10 + i * (spacing + rectSize), rectSize, rectSize, {
-                fill: zScale(k),
-                strokeWidth: 1,
-                fillWeight: 2,
-                roughness: 1.5,
-                hachureAngle: Math.random() * 1000,
-            });
-            const legendTextNode = createTextNode(k, width - legendOffset + rectSize + 10, 10 + i * (spacing + rectSize) + rectSize / 2);
-            legendTextNode.setAttribute("dominant-baseline", "mathematical");
-            graphNode.appendChild(legendTextNode);
-            graphNode.appendChild(rekt);
-        }
-    })
-    .catch(e => {
-        console.dir(e);
-    });
+    drawContinuously();
   </script>
 </body>
 
