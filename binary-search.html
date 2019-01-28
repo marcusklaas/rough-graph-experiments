@@ -3,7 +3,6 @@
 <head>
   <title>Search in vectors visualized</title>
   <script src="https://rawgit.com/pshihn/rough/master/dist/rough.js"></script>
-  <script src="https://d3js.org/d3.v5.min.js"></script>
   <link href="https://fonts.googleapis.com/css?family=Neucha" rel="stylesheet"> 
   <style>
       svg text {
@@ -15,10 +14,10 @@
 
 <body>
   <!-- todo: generate viewbox automatically -->
-  <svg id="svg" width="1000" height="300" viewbox="0 0 1000 300"></svg>
+  <svg id="svg" width="1000" height="250" viewbox="0 0 1000 230"></svg>
 
   <script>
-    const data = Array.from({length: 20}, () => Math.floor(Math.random() * 99)).sort((a, b) => a - b);
+    const data = Array.from({length: 15}, () => Math.floor(Math.random() * 99)).sort((a, b) => a - b);
     const key = data[Math.floor(Math.random() * data.length)];
 
     const w = 1000,
@@ -105,7 +104,7 @@
     let binaryIter = 0;
     let prevPivot = -1;
     let lower = 0,
-        upper = data.length - 1;
+        upper = data.length;
     while (upper > lower) {
         const pivot = Math.floor((upper + lower) / 2);
         const arc = getBow(prevPivot, pivot, Math.PI / 2, true);
@@ -117,11 +116,8 @@
         if (data[pivot] <= key) {
             lower = pivot;
         }
-
-        if (binaryIter++ > 500) {
-            break;
-        }
         prevPivot = pivot;
+        binaryIter++;
     }
 
     svg.appendChild(createTextNode(`key: ${key}`, 50, 20));
