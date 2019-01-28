@@ -7,3 +7,7 @@ Bar charts:
 Line charts:
 
 ![](ruffgraf.gif)
+
+Vector search:
+
+![](binary.png)
