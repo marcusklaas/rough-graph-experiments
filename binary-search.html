@@ -22,7 +22,7 @@
     const key = data[Math.floor(Math.random() * data.length)];
 
     const w = 1000,
-          h = 300,
+          h = 250,
           pad = 10;
     const svg = document.getElementById('svg');
     const rc = rough.svg(svg, {
@@ -46,10 +46,24 @@
         return textNode;
     };
 
+    const drawMarker = (x, yPos, width, height, angle) => {
+        const [x2, y2] = [x + Math.cos(-angle) * width / 2, yPos - Math.sin(-angle) * height / 2];
+        const arrowAngle = angle + Math.PI / 2;
+        const skew = width / height;
+        const markerSize = 10;
+        const markerSpread = Math.PI / 4;
+
+        const line = rc.line(x2 - markerSize * Math.cos(-angle - markerSpread) * skew, y2 - markerSize * Math.sin(-angle - markerSpread), x2, y2);
+        svg.appendChild(line);
+
+        const line2 = rc.line(x2 - markerSize * Math.cos(-angle + markerSpread) * skew, y2 - markerSize * Math.sin(-angle + markerSpread), x2, y2);
+        svg.appendChild(line2);
+    };
+
     const getBow = (srcIdx, destIdx, arc, above) => {
         const x = (getX(srcIdx) + getX(destIdx) + boxW) / 2;
-        const bowW = getX(destIdx) - getX(srcIdx) - 0.1 * boxW;
         const arcWfactor = Math.cos(Math.PI / 2 - arc / 2);
+        const bowW = (getX(destIdx) - getX(srcIdx) - 0.05 * boxW) / arcWfactor;
         const arcHfactor = Math.sin(Math.PI / 2 - arc / 2);
         const bowH = y * (1 - 0.5/ Math.abs(destIdx - srcIdx)) / (1 - arcHfactor);
         const yTrans = bowH * arcHfactor / 2;
@@ -60,7 +74,10 @@
             : [0.5 * Math.PI - drawArc / 2, 0.5 * Math.PI + drawArc / 2];
         const yPos = above ? y + yTrans : y - yTrans + boxW;
 
-        return rc.arc(x, yPos, bowW / arcWfactor, bowH, start, stop, false);
+        const markerAngle = above ? stop : start;
+        drawMarker(x, yPos, bowW, bowH, markerAngle);
+
+        return rc.arc(x, yPos, bowW, bowH, start, stop, false);
     };
     
     // draw boxes
@@ -73,9 +90,11 @@
     }
 
     // draw linear search
+    let linearIter = 0;
     for (const [idx, val] of data.entries()) {
         const arc = getBow(idx - 1, idx, Math.PI / 2, false);
         svg.appendChild(arc);
+        linearIter++;
 
         if (val >= key) {
             break;
@@ -83,7 +102,7 @@
     }
 
     // draw BINARY search
-    let iter = 0;
+    let binaryIter = 0;
     let prevPivot = -1;
     let lower = 0,
         upper = data.length - 1;
@@ -92,8 +111,6 @@
         const arc = getBow(prevPivot, pivot, Math.PI / 2, true);
         svg.appendChild(arc);
 
-        console.log(`key: ${key}, piv: ${data[pivot]}, lower: ${data[lower]}, upper: ${data[upper]}`);
-
         if (data[pivot] >= key) {
             upper = pivot;
         }
@@ -101,11 +118,15 @@
             lower = pivot;
         }
 
-        if (iter++ > 500) {
+        if (binaryIter++ > 500) {
             break;
         }
         prevPivot = pivot;
     }
+
+    svg.appendChild(createTextNode(`key: ${key}`, 50, 20));
+    svg.appendChild(createTextNode(`binary iterations: ${binaryIter}`, 500, 20));
+    svg.appendChild(createTextNode(`linear iterations: ${linearIter}`, 500, 210));
   </script>
 </body>
 
