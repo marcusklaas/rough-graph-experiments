@@ -178,7 +178,7 @@
         });
     };
 
-    const drawContinuously = () => {
+    const draw = () => {
         const newSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         newSvg.style.width = "960px";
         newSvg.style.height = "500px";
@@ -186,11 +186,14 @@
 
         drawSvg(newSvg);
         document.body.replaceChild(newSvg, document.getElementsByTagName('svg')[0]);
+    }
 
+    const drawContinuously = () => {
+        draw();
         setTimeout(drawContinuously, 100);
     };
 
-    drawContinuously();
+    draw();
   </script>
 </body>
 
