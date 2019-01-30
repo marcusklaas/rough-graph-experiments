@@ -11,3 +11,7 @@ Line charts:
 Vector search:
 
 ![](binary.png)
+
+Normal distributions:
+
+![](elo.png)

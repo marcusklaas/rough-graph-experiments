@@ -26,7 +26,7 @@
     const svg = document.getElementById('svg');
     const rc = rough.svg(svg, {
         options: {
-            fill: "blue",
+            fill: 'rgb(100, 100, 255)',
             roughness: 0.8,
             bowing: 3.7
         }
@@ -76,7 +76,9 @@
         const markerAngle = above ? stop : start;
         drawMarker(x, yPos, bowW, bowH, markerAngle);
 
-        return rc.arc(x, yPos, bowW, bowH, start, stop, false);
+        return rc.arc(x, yPos, bowW, bowH, start, stop, false, {
+            roughness: 1,
+        });
     };
     
     // draw boxes

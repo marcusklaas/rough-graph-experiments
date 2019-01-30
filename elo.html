@@ -1,0 +1,140 @@
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Search in vectors visualized</title>
+  <script src="https://rawgit.com/pshihn/rough/master/dist/rough.js"></script>
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <link href="https://fonts.googleapis.com/css?family=Neucha" rel="stylesheet"> 
+  <style>
+      svg text {
+        font-family: 'Neucha';
+        font-size: 150%;
+      }
+      svg {
+          padding: 10px;
+          overflow: visible;
+      }
+  </style>
+</head>
+
+<body>
+  <!-- todo: generate viewbox automatically -->
+  <svg id="svg" width="900" height="350" viewbox="0 0 900 350"></svg>
+
+  <script>
+   const w = 900,
+          h = 350,
+          pad = 50;
+    const svg = document.getElementById('svg');
+    const rc = rough.svg(svg, {
+        options: {
+            fill: 'rgb(100, 100, 255)',
+            roughness: 0.8,
+            bowing: 3.7
+        }
+    });
+
+    const stdDev = 102.71;
+
+    const domainLow = 1350,
+        domainHigh = 2250;
+
+    const y = d3.scaleLinear()
+            .rangeRound([h - pad, 0])
+            .domain([0, 0.1]); // no idea what domain should be lol
+
+    const x = d3.scaleLinear()
+            .rangeRound([0, w])
+            .domain([domainLow, domainHigh]);
+
+    const createTextNode = (txt, x, y) => {
+        const textNode = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        textNode.appendChild(document.createTextNode(txt));
+        textNode.setAttribute("x", x);
+        textNode.setAttribute("y", y);
+        textNode.setAttribute("dominant-baseline", "alphabetic");
+        textNode.setAttribute("text-anchor", "middle");
+        return textNode;
+    };
+
+    const drawNormal = (mean, labelPercentage, labelAngle, labelText, fillOptions, strokeOptions) => {
+        const normalizer = 11;
+        const points = [];
+        const samples = 40;
+        for (let i = 0; i <= samples; i++) {
+            const xVal = (i / samples) * domainHigh + (1 - i / samples) * domainLow;
+            const xCoord = x(xVal);
+            const yVal = Math.exp(- (xVal - mean) * (xVal - mean) / stdDev / stdDev) / normalizer;
+            const yCoord = y(yVal);
+            points.push([xCoord, yCoord]);
+        }
+        const curveFill = rc.polygon(points, fillOptions);
+        const curve = rc.curve(points, strokeOptions);
+
+        svg.appendChild(curveFill);
+        svg.appendChild(curve);
+
+        // draw labels
+        const labelPointerLen = 90;
+        const labelIdx = Math.floor(samples * labelPercentage);
+        const label = rc.line(
+            points[labelIdx][0] + Math.cos(labelAngle) * 5,
+            points[labelIdx][1] + Math.sin(labelAngle) * 5,
+            points[labelIdx][0] + Math.cos(labelAngle) * labelPointerLen,
+            points[labelIdx][1] + Math.sin(labelAngle) * labelPointerLen,
+            {
+                strokeWidth: 1.5,
+            }
+        );
+        svg.appendChild(label);
+        const txt = createTextNode(
+            labelText,
+            points[labelIdx][0] + Math.cos(labelAngle) * labelPointerLen,
+            points[labelIdx][1] + Math.sin(labelAngle) * labelPointerLen - 6
+        );
+        svg.appendChild(txt);
+    };
+
+    // draw normals
+    const meanOne = 1700;
+    const meanTwo = 1880;
+    drawNormal(
+        meanTwo,
+        0.7,
+        Math.PI * 1.79,
+        `Y ~ N(${meanTwo}, ${Math.floor(stdDev)})`,
+        {
+            fill: 'rgba(100, 200, 50, 0.9)', stroke: 'none', roughness: 0.1, hachureAngle: 100,
+            hachureGap: 12, strokeWidth: 10, fillWidth: 3, fillStyle: 'cross-hatch'
+        },
+        { stroke: 'green', strokeWidth: 4, roughness: 1.5 }
+    );
+    drawNormal(
+        meanOne,
+        0.31,
+        Math.PI * 1.15,
+        `X ~ N(${meanOne}, ${Math.floor(stdDev)})`,
+        {
+            fill: 'rgba(120, 150, 230, 0.9)', stroke: 'none', roughness: 0.2, hachureAngle: 60, hachureGap: 6,
+            strokeWidth: 5.5, fillStyle: 'zigzag'
+        },
+        { stroke: 'blue', strokeWidth: 4, roughness: 1.5 }
+    );
+
+    // draw axis
+    const offset = 3;
+    const baseLine = rc.line(x(domainLow), y(0) + offset, x(domainHigh), y(0) + offset, {
+        roughness: 0.2,
+        strokeWidth: 3,
+    });
+    svg.appendChild(baseLine);
+
+    // draw win probability
+    // prob = CDF (norm(meanTwo - meanOne, stdDev), 0)
+    const winProb = createTextNode(`P(X > Y) ≈ 0.039`, w / 2, h - 10);
+    svg.appendChild(winProb);
+  </script>
+</body>
+
+</html>
